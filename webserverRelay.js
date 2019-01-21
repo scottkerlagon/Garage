@@ -21,7 +21,7 @@ function handler (req, res) { //create server
 }
 
 function getServerCode(){ 
-	var contents = fs.readFileSync('webCode.txt', 'utf8');
+	var contents = fs.readFileSync('serverCode.txt', 'utf8');
 	serverCode = contents;
 }
 
