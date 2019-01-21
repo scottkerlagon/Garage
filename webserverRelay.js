@@ -20,13 +20,12 @@ function handler (req, res) { //create server
   });
 }
 
-function setServerCode(){ 
+function getServerCode(){ 
 	var contents = fs.readFileSync('webCode.txt', 'utf8');
-	console.log(contents);
 	serverCode = contents;
 }
 
-var serverCode = setServerCode();
+var serverCode = getServerCode();
 
 function validatePassword(password) {
   if(password === serverCode)
