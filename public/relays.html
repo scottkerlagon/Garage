@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>My Garage</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+	
+	<style>
+		.bg-1 { 
+			background-color: #f1f1f1;			
+		}
+		.img-container {
+			position:relative;
+			padding-top:66.59%;
+		}
+
+		img {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width:100%;
+		}
+		.row {
+			*zoom: 1;
+			margin-top: 15px;
+		}
+	</style>
+</head>
+<body>
+<div class="container-fluid bg-1">
+	<div class="form-group">
+		<h1>Control Garage Doors</h1>
+		<div class="row">
+			<label for="password">Password</label>
+			<input type="password" class="" id="password" value=""/>
+		</div>
+		<div class="row">
+			<button id="chargerDoor" class="btn btn-warning ">Toggle Charger <span class="glyphicon glyphicon-sort"></span></button>
+			<button id="vanDoor" class="btn btn-warning">Toggle Van <span class="glyphicon glyphicon-sort"></span></button>
+		</div>
+		<div class="row">
+			<button id="picture" class="btn btn-primary">Take Picture <span class="glyphicon glyphicon-camera"></span></button>
+			<button id="stream" class="btn btn-primary">Start Stream <span class="glyphicon glyphicon-play"></span></button>
+			<button id="streamStop" class="btn btn-primary">Stop Stream <span class="glyphicon glyphicon-stop"></span></button>
+		</div>
+		<div class="row">
+			<label for="miliSeconds">miliSeconds per pic</label>
+			<input class="form-group" type="text" id="miliSeconds" value="400"/>
+			<label for="quality">quality</label>
+			<input class="form-group" type="text" id="quality" value="75"/><small>100</small>
+			<label for="width">width</label>
+			<input class="form-group" type="text" id="width" value="640"/><small>1280</small>
+			<label for="height">height</label>
+			<input class="form-group" type="text" id="height" value="360"/><small>720</small>
+		</div>
+		<div class="img-container">
+			<img id="imageHolder" class="center"></img>
+		</div>
+	</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script> <!-- include socket.io client side script -->
+<script>
+	var socket = io(); //load socket.io-client and connect to the host that serves the page
+		
+	function getValue(name){
+		return Number(document.getElementById(name).value);
+	}
+	
+	function getString(name){
+		return document.getElementById(name).value;
+	}
+
+	function sendPics(){
+	  stopStream = false;
+	  var currentNumPics = 0;
+	  var interval = setInterval(function(){
+		if(stopStream) {
+		  clearInterval(interval);
+		}
+		currentNumPics++;
+		console.log(currentNumPics);
+		socket.emit("takePicture", getString("password"), getValue("quality"), getValue("width"), getValue("height"));
+	  }, getValue("miliSeconds"));
+	}
+	var stopStream = false;
+	window.addEventListener("load", function(){
+	  var stream = document.getElementById("stream"); 
+	  stream.addEventListener("click", sendPics);
+	  
+		var streamStop = document.getElementById("streamStop"); 
+		streamStop.addEventListener("click", function() {
+		  stopStream = true;
+		});
+	  
+	  var cam = document.getElementById("picture"); 
+	  cam.addEventListener("click", function() {
+		socket.emit("takePicture", getString("password"), getValue("quality"), getValue("width"), getValue("height"));
+	  });
+
+	  var chargerDoor = document.getElementById("chargerDoor"); 
+	  chargerDoor.addEventListener("click", function() {
+		socket.emit("chargerDoor", getString("password"));
+	  });
+
+	  var vanDoor = document.getElementById("vanDoor"); 
+	  vanDoor.addEventListener("click", function() {
+		socket.emit("vanDoor", getString("password"));
+	  });
+	});
+
+	socket.on('pictureTaken', function (data) {
+	  document.getElementById("imageHolder").setAttribute('src', data);
+	});
+
+</script>
+</body>
+</html>
