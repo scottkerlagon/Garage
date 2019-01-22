@@ -2,9 +2,41 @@ var NodeWebcam = require( "node-webcam" );
 var http = require('http').createServer(handler); //require http server, and create server with function handler()
 var fs = require('fs'); //require filesystem module
 var io = require('socket.io')(http) //require socket.io module and pass the http object (server)
+const piGpio = require('pigpio').Gpio;
 var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
 var relay1 = new Gpio(20, 'out'); //use GPIO pin 20 as output
 var relay2 = new Gpio(21, 'out'); //use GPIO pin 21 as output
+
+//Ultra Sonic Code
+// The number of microseconds it takes sound to travel 1cm at 20 degrees celcius
+const MICROSECDONDS_PER_CM = 1e6/34321;
+const trigger = new piGpio(23, {mode: piGpio.OUTPUT});
+const echo = new piGpio(24, {mode: piGpio.INPUT, alert: true});
+trigger.digitalWrite(0); // Make sure trigger is low
+
+const watchHCSR04 = () => {
+  let startTick;
+
+  echo.on('alert', (level, tick) => {
+    if (level == 1) {
+      startTick = tick;
+    } else {
+      const endTick = tick;
+      const diff = (endTick >> 0) - (startTick >> 0); // Unsigned 32 bit arithmetic
+      console.log(diff / 2 / MICROSECDONDS_PER_CM);
+    }
+  });
+};
+
+watchHCSR04();
+
+// Trigger a distance measurement once per second
+setInterval(() => {
+  trigger.trigger(10, 1); // Set trigger high for 10 microseconds
+}, 1000);
+
+//End Ultra Sonic Code
+
 
 http.listen(8080); //listen to port 8080
 
@@ -81,18 +113,15 @@ io.sockets.on('connection', function (socket) {// WebSocket Connection
   });
 });
 
-process.on('SIGINT', function () { //on ctrl+c
-  relay1.writeSync(0); // Turn relay1 off
-  relay2.writeSync(0); // Turn relay2 off
-  relay1.unexport(); // Unexport relay1 GPIO to free resources
-  relay2.unexport(); // Unexport relay2 GPIO to free resources
-  process.exit(); //exit completely
-});
+process.on('SIGINT', cleanUp); //on ctrl+c
 
-process.on('uncaughtException', function () { //on exception
-  relay1.writeSync(0); // Turn relay1 off
-  relay2.writeSync(0); // Turn relay2 off
-  relay1.unexport(); // Unexport relay1 GPIO to free resources
-  relay2.unexport(); // Unexport relay2 GPIO to free resources
-  process.exit(); //exit completely
-});
+process.on('uncaughtException', cleanUp); //on exception
+
+function cleanUp(){
+	relay1.writeSync(0); // Turn relay1 off
+	relay2.writeSync(0); // Turn relay2 off
+	relay1.unexport(); // Unexport relay1 GPIO to free resources
+	relay2.unexport(); // Unexport relay2 GPIO to free resources
+	unwatchAll();
+	process.exit(); //exit completely
+}
