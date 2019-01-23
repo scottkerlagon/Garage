@@ -2,7 +2,7 @@ var NodeWebcam = require( "node-webcam" );
 var http = require('http').createServer(handler); //require http server, and create server with function handler()
 var fs = require('fs'); //require filesystem module
 var io = require('socket.io')(http) //require socket.io module and pass the http object (server)
-//const piGpio = require('pigpio').Gpio;
+const piGpio = require('pigpio').Gpio;
 var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
 var relay1 = new Gpio(20, 'out'); //use GPIO pin 20 as output
 var relay2 = new Gpio(21, 'out'); //use GPIO pin 21 as output
@@ -10,33 +10,34 @@ var relay2 = new Gpio(21, 'out'); //use GPIO pin 21 as output
 //Ultra Sonic Code
 // The number of microseconds it takes sound to travel 1cm at 20 degrees celcius
 const MICROSECDONDS_PER_CM = 1e6/34321;
-//const trigger = new piGpio(7, {mode: piGpio.OUTPUT});
-//const echo = new piGpio(11, {mode: piGpio.INPUT, alert: true});
-//trigger.digitalWrite(0); // Make sure trigger is low
+const trigger = new piGpio(12, {mode: piGpio.OUTPUT});//16
+const echo = new piGpio(16, {mode: piGpio.INPUT, alert: true});//12
+trigger.digitalWrite(0); // Make sure trigger is low
 
-//~ const watchHCSR04 = () => {
-  //~ let startTick;
+// const watchHCSR04 = () => {
+  // console.log('Start watching');
+  // let startTick;
 
-  //~ echo.on('alert', (level, tick) => {
-    //~ if (level == 1) {
-      //~ startTick = tick;
-    //~ } else {
-      //~ const endTick = tick;
-      //~ const diff = (endTick >> 0) - (startTick >> 0); // Unsigned 32 bit arithmetic
-      //~ console.log(diff / 2 / MICROSECDONDS_PER_CM);
-    //~ }
-  //~ });
-//~ };
+  // echo.on('alert', (level, tick) => {
+    // if (level == 1) {
+      // startTick = tick;
+    // } else {
+      // const endTick = tick;
+      // const diff = (endTick >> 0) - (startTick >> 0); // Unsigned 32 bit arithmetic
+      // var inches = (Math.round((diff / 2 / MICROSECDONDS_PER_CM)*.3937008 * 100) / 100);
+      // console.log(inches + 'in');
+	  // socket.emit('distanceChanged', inches);
+    // }
+  // });
+// };
 
 //watchHCSR04();
 
 // Trigger a distance measurement once per second
-//~ setInterval(() => {
-  //~ trigger.trigger(10, 1); // Set trigger high for 10 microseconds
-//~ }, 1000);
-
+setInterval(() => {
+  trigger.trigger(10, 1); // Set trigger high for 10 microseconds
+}, 100);
 //End Ultra Sonic Code
-
 
 http.listen(8080); //listen to port 8080
 
@@ -79,6 +80,25 @@ function sleep(milliseconds) {
 }
 
 io.sockets.on('connection', function (socket) {// WebSocket Connection
+	const watchHCSR04 = () => {
+	  console.log('Start watching');
+	  let startTick;
+
+	  echo.on('alert', (level, tick) => {
+		if (level == 1) {
+		  startTick = tick;
+		} else {
+		  const endTick = tick;
+		  const diff = (endTick >> 0) - (startTick >> 0); // Unsigned 32 bit arithmetic
+		  var inches = (Math.round((diff / 2 / MICROSECDONDS_PER_CM)*.3937008 * 100) / 100);
+		  console.log(inches + 'in');
+		  socket.emit('distanceChanged', inches);
+		}
+	  });
+	};
+
+	watchHCSR04();
+
   var relay1Value = 0; //static variable for current status
   
   socket.on('takePicture', function(pwassWord, quality, width, height) {
@@ -121,7 +141,7 @@ io.sockets.on('connection', function (socket) {// WebSocket Connection
   });
 });
 
-process.on('SIGINT', cleanUp); //on ctrl+c
+//process.on('SIGINT', cleanUp); //on ctrl+c
 process.on('SIGINT', function (){  //on ctrl+c
   console.log('In SIGINT');
   relay1.writeSync(0); // Turn relay1 off

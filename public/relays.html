@@ -35,6 +35,9 @@
 			<label for="password">Password</label>
 			<input type="password" class="" id="password" value=""/>
 		</div>
+		<div>
+			<label id="inches"></label> in.
+		</div>
 		<div class="row">
 			<button id="chargerDoor" class="btn btn-warning ">Toggle Charger <span class="glyphicon glyphicon-sort"></span></button>
 			<button id="vanDoor" class="btn btn-warning">Toggle Van <span class="glyphicon glyphicon-sort"></span></button>
@@ -112,6 +115,11 @@
 
 	socket.on('pictureTaken', function (data) {
 	  document.getElementById("imageHolder").setAttribute('src', data);
+	});
+	
+	socket.on('distanceChanged', function(inches){
+		console.log("In distance changed with a value of " + inches);
+		document.getElementById("inches").textContent = inches;
 	});
 
 </script>
