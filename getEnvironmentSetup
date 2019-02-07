@@ -1,0 +1,4 @@
+$ sudo apt update
+$ sudo apt full-upgrade -y
+$ sudo apt-get install git
+$ sudo apt install -y nodejs
